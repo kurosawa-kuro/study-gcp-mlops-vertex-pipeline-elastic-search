@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MLOps・検索基盤の学習プロジェクト。Cloud Runベースで（Kubernetes不使用）MLパイプラインと検索基盤を構築する。
+MLOps・検索基盤・LLMの学習プロジェクト。Cloud Runベースで（Kubernetes不使用）MLパイプラインと検索基盤を構築し、Vertex AI Pipelineへ段階的に移行する。
 GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
 
 ## Architecture
@@ -34,6 +34,15 @@ GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
 [Elastic Cloud]
    ├── Elasticsearch（データ格納・全文検索）
    └── Kibana（管理UI・APIキー発行）
+
+[Vertex AI Pipeline（設計完了・実装予定）]
+   ├── Step1: evaluate_model（GCSモデル評価）
+   ├── Step2: quality_gate（RMSE閾値チェック）
+   ├── Step3: compare_champion（BigQuery Champion比較）
+   └── Step4: deploy_model（Vertex AI Endpointデプロイ）
+
+[Vertex AI（MVP実装済み）]
+   └── Notebook: 学習→Model Registry→Endpoint→推論→クリーンアップ
 ```
 
 - **batch/**: Cloud Run Job - データ取得→学習→評価(MLflow)→モデル保存(GCS)→ログ出力(GCS)→メトリクス投入(BigQuery)
@@ -41,14 +50,16 @@ GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
 - **elastic-search/**: Cloud Run Job - Elastic Cloud接続確認（Terraform管理、.envで設定一元管理）
 - **terraform/**: GCS, BigQuery, Cloud Run (Job/Service), Artifact Registry, Cloud Scheduler のIaC定義
 - **scripts/**: 共通ユーティリティ(core.py)、監視(batch/API)、ドリフト検知、デプロイ、リセット
-- **notebooks/**: Vertex AI学習用ノートブック
+- **notebooks/**: Vertex AI学習用ノートブック（MVP実装済み）
+- **docs/**: 各領域の仕様・設計書（vertex/, vertex-pipeline/, elastic-search/, llm/）
 
 ## Tech Stack
 
-- **ML**: scikit-learn, MLflow, pandas, Vertex AI
+- **ML**: scikit-learn, MLflow, pandas, Vertex AI (Model Registry, Endpoint, Pipelines)
+- **LLM**: ELECTRA (日本語Embedding), FAISS, Vertex AI Gemini (RAG予定)
 - **API**: FastAPI (Cloud Run Service)
 - **検索**: Elastic Cloud (Elasticsearch + Kibana)
-- **Data**: BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション）
+- **Data**: BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション・Vector Search予定）
 - **Infra**: Cloud Run (Job/Service), GCS, Artifact Registry, Cloud Scheduler, Secret Manager
 - **IaC**: Terraform（GCP + Elastic Cloud）
 - **CI/CD**: GitHub Actions（batch/API/Terraform 3本）

@@ -6,15 +6,18 @@
 ## 1. 目的
 
 ```text
-GCP上でMLOps・検索基盤を理解・実装する
+GCP上でMLOps・検索基盤・LLMを理解・実装する
 
 ・Kubernetesを使わない構成でMLパイプラインを構築する
 ・バッチ処理主体のMLフロー（学習・評価・モデル保存）を確立する
 ・BigQueryで評価メトリクスを蓄積し、最良モデルを機械的に選択する
 ・推論APIで最良モデルを自動ロードし、MLOpsの一周を完成させる
 ・監視・ドリフト検知で運用品質を担保する
-・Vertex AIによるマネージドML基盤を学習する
+・Vertex AIによるマネージドML基盤を学習する（MVP実装済み）
+・Vertex AI Pipelineで品質ゲート・Champion/Challenger比較を実装する
 ・Elastic Cloudで検索基盤を構築・Terraform管理する
+・日本語ELECTRAでEmbedding検索・ファインチューニングを体験する
+・Vertex AI RAG（Gemini + BigQuery Vector Search）を構築する
 ```
 
 ---
@@ -25,16 +28,21 @@ GCP上でMLOps・検索基盤を理解・実装する
 GCP
 - Cloud Run（Job / Service）
 - GCS（logs / models）
-- BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション）
+- BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション・Vector Search予定）
 - Artifact Registry
 - Cloud Scheduler（定期実行）
 - Secret Manager（APIキー管理）
-- Vertex AI（マネージドML基盤）
+- Vertex AI（Model Registry / Endpoint / Pipelines）
 
 ML
 - scikit-learn（California Housing / RandomForest）
 - MLflow（実験管理・メトリクス記録）
 - pandas
+
+LLM
+- ELECTRA（日本語Embedding / ファインチューニング）
+- FAISS（ベクトル検索）
+- Vertex AI Gemini（RAG予定）
 
 API
 - FastAPI（Cloud Run Service / 推論API）
@@ -89,6 +97,20 @@ CI/CD
    ├── Elasticsearch（データ格納・検索）
    └── Kibana（管理UI）
 
+[Vertex AI（MVP実装済み）]
+   └── Notebook: 学習→Model Registry→Endpoint→推論→クリーンアップ
+
+[Vertex AI Pipeline（設計完了・実装予定）]
+   ├── evaluate_model（GCSモデル評価）
+   ├── quality_gate（RMSE閾値チェック）
+   ├── compare_champion（BigQuery Champion比較）
+   └── deploy_model（Vertex AI Endpointデプロイ）
+
+[LLM（計画中）]
+   ├── ELECTRA Embedding基礎 → FAISS検索 → 評価（Recall@K / MRR）
+   ├── ファインチューニング（Contrastive Learning）
+   └── Vertex RAG MLOps（Gemini + BigQuery Vector Search）
+
 [GitHub Actions]
    ├── batch: main push(src/batch) → test → build → push → Cloud Run Job 更新
    ├── api:   main push(src/api)   → test → build → push → Cloud Run Service 更新
@@ -116,8 +138,12 @@ study-gcp-mlops-vertex-elastic-search/
 ├── terraform/              # MLOps系インフラ定義（Terraform）
 ├── makefiles/              # Makefile分割ファイル
 ├── scripts/                # 共通ユーティリティ・監視・デプロイスクリプト
-├── notebooks/              # Vertex AI学習用ノートブック
-├── docs/                   # 手順書・ドキュメント
+├── notebooks/              # Vertex AI学習用ノートブック（MVP実装済み）
+├── docs/                   # 仕様・設計書
+│   ├── elastic-search/     # Elastic Search 仕様・設計書
+│   ├── llm/                # LLM 仕様・設計書（ELECTRA / RAG）
+│   ├── vertex/             # Vertex AI 仕様・設計書
+│   └── vertex-pipeline/    # Vertex AI Pipeline 仕様・設計書
 ├── Makefile                # ビルド・デプロイコマンド
 └── README.md
 ```
