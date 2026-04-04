@@ -10,6 +10,7 @@ include makefiles/gcp.mk
 include makefiles/terraform.mk
 include makefiles/batch.mk
 include makefiles/api.mk
+include makefiles/pipeline.mk
 
 # === 統合コマンド ===
 .PHONY: deploy reset test help
@@ -18,7 +19,7 @@ deploy: batch-deploy api-deploy  ## 全体デプロイ（インフラ + batch + 
 
 test: batch-test api-test  ## 全テスト一括実行
 
-reset:  ## 全リソース削除 & ローカルクリーン
+reset:  ## 全リソース削除 & ローカルクリーン（Vertex AI Endpoint/Model含む）
 	python3 scripts/reset_all.py
 
 help:  ## コマンド一覧表示
@@ -26,6 +27,7 @@ help:  ## コマンド一覧表示
 	@echo "  make gcp-setup          GCP初回セットアップ一括"
 	@echo "  make gcp-setup-apis     API有効化"
 	@echo "  make gcp-setup-sa       Terraform SA権限付与"
+	@echo "  make gcp-setup-vertex   Vertex AI Pipeline用IAM付与"
 	@echo "  make gcp-setup-docker   Docker認証設定"
 	@echo ""
 	@echo "=== Terraform ==="
@@ -58,7 +60,15 @@ help:  ## コマンド一覧表示
 	@echo "  make api-url            APIのURL表示"
 	@echo "  make api-monitor        API健全性チェック"
 	@echo ""
+	@echo "=== Vertex AI Pipeline ==="
+	@echo "  make pipeline-install   依存パッケージインストール"
+	@echo "  make pipeline-compile   コンパイル（pipeline.json生成）"
+	@echo "  make pipeline-run       コンパイル & 実行（同期）"
+	@echo "  make pipeline-run-async コンパイル & 実行（非同期）"
+	@echo "  make pipeline-status    実行履歴表示"
+	@echo "  make pipeline-clean     Endpoint/Model全削除（冪等）"
+	@echo ""
 	@echo "=== 統合 ==="
 	@echo "  make deploy             全体デプロイ（batch + API）"
 	@echo "  make test               全テスト一括実行"
-	@echo "  make reset              全リソース削除 & クリーン"
+	@echo "  make reset              全リソース削除 & クリーン（Vertex AI含む）"

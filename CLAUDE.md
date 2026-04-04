@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MLOps・検索基盤・LLMの学習プロジェクト。Cloud Runベースで（Kubernetes不使用）MLパイプラインと検索基盤を構築し、Vertex AI Pipelineへ段階的に移行する。
+MLOps・検索基盤・LLMの学習プロジェクト。Cloud Runベースで（Kubernetes不使用）MLパイプラインと検索基盤を構築。Vertex AI Pipeline（KFP v2）で学習→評価→品質ゲート→Champion比較→デプロイの6 Step Pipeline を実装済み。
 GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
 
 ## Architecture
@@ -35,11 +35,13 @@ GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
    ├── Elasticsearch（データ格納・全文検索）
    └── Kibana（管理UI・APIキー発行）
 
-[Vertex AI Pipeline（設計完了・実装予定）]
-   ├── Step1: evaluate_model（GCSモデル評価）
-   ├── Step2: quality_gate（RMSE閾値チェック）
-   ├── Step3: compare_champion（BigQuery Champion比較）
-   └── Step4: deploy_model（Vertex AI Endpointデプロイ）
+[Vertex AI Pipeline（KFP v2・実装済み）]
+   ├── Step1: load_data（California Housingデータ取得・分割）
+   ├── Step2: train_model（RandomForest学習）
+   ├── Step3: evaluate_model（RMSE/MAE算出→GCS保存→BigQuery記録）
+   ├── Step4: quality_gate（RMSE閾値チェック→不合格時Discord通知）
+   ├── Step5: compare_champion（BigQuery Champion比較→改善なし時Discord通知）
+   └── Step6: deploy_model（Vertex AI Endpoint デプロイ→Discord通知）
 
 [Vertex AI（MVP実装済み）]
    └── Notebook: 学習→Model Registry→Endpoint→推論→クリーンアップ
@@ -47,23 +49,25 @@ GCPプロジェクト: `mlops-dev-a`、リージョン: `asia-northeast1`
 
 - **batch/**: Cloud Run Job - データ取得→学習→評価(MLflow)→モデル保存(GCS)→ログ出力(GCS)→メトリクス投入(BigQuery)
 - **api/**: Cloud Run Service - BigQueryで最良モデル選択→GCSからロード→FastAPIで推論レスポンス
+- **pipeline/**: Vertex AI Pipeline（KFP v2） - 6 Stepの学習→評価→品質ゲート→Champion比較→デプロイ Pipeline
 - **elastic-search/**: Cloud Run Job - Elastic Cloud接続確認（Terraform管理、.envで設定一元管理）
-- **terraform/**: GCS, BigQuery, Cloud Run (Job/Service), Artifact Registry, Cloud Scheduler のIaC定義
-- **scripts/**: 共通ユーティリティ(core.py)、監視(batch/API)、ドリフト検知、デプロイ、リセット
+- **terraform/**: GCS, BigQuery, Cloud Run (Job/Service), Artifact Registry, Cloud Scheduler, Vertex AI IAM のIaC定義
+- **scripts/**: 共通ユーティリティ(core.py)、監視(batch/API)、ドリフト検知、デプロイ、リセット（Vertex AIクリーンアップ含む）
 - **notebooks/**: Vertex AI学習用ノートブック（MVP実装済み）
 - **docs/**: 各領域の仕様・設計書（vertex/, vertex-pipeline/, elastic-search/, llm/）
 
 ## Tech Stack
 
 - **ML**: scikit-learn, MLflow, pandas, Vertex AI (Model Registry, Endpoint, Pipelines)
-- **LLM**: ELECTRA (日本語Embedding), FAISS, Vertex AI Gemini (RAG予定)
+- **Pipeline**: KFP v2（Lightweight Python Components）、品質ゲート、Champion/Challenger比較
+- **LLM（予定）**: ELECTRA (日本語Embedding), FAISS, Vertex AI Gemini (RAG)
 - **API**: FastAPI (Cloud Run Service)
 - **検索**: Elastic Cloud (Elasticsearch + Kibana)
-- **Data**: BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション・Vector Search予定）
+- **Data**: BigQuery（評価メトリクス蓄積・最良モデル選択・90日リテンション）
 - **Infra**: Cloud Run (Job/Service), GCS, Artifact Registry, Cloud Scheduler, Secret Manager
 - **IaC**: Terraform（GCP + Elastic Cloud）
 - **CI/CD**: GitHub Actions（batch/API/Terraform 3本）
-- **監視**: Discord通知（batch監視・API健全性・モデルドリフト検知）
+- **監視**: Discord通知（batch監視・API健全性・モデルドリフト検知・Pipeline通知）
 - **ログ**: JSON構造化ログ（Cloud Logging互換）
 
 ## GCP Setup
